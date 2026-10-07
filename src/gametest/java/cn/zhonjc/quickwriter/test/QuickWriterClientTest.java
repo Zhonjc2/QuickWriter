@@ -1,8 +1,10 @@
 package cn.zhonjc.quickwriter.test;
 
 import cn.zhonjc.quickwriter.TextDisplays;
+import cn.zhonjc.quickwriter.client.ClientCompat;
 import cn.zhonjc.quickwriter.client.EditController;
 import cn.zhonjc.quickwriter.client.TextEditorScreen;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.TestInput;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -12,7 +14,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +26,7 @@ public class QuickWriterClientTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         try (TestSingleplayerContext sp = ctx.worldBuilder().create()) {
-            sp.getConnection().waitForChunksRender();
+            waitForChunks(sp);
             TestServerContext server = sp.getServer();
             TestInput input = ctx.getInput();
 
@@ -41,22 +42,22 @@ public class QuickWriterClientTest implements FabricClientGameTest {
             ctx.waitTicks(20);
 
             // --- 1. enable edit mode with the key binding and write on the north face -----------------------------
-            input.pressKey(GLFW.GLFW_KEY_G);
+            input.pressKey(InputConstants.KEY_G);
             ctx.waitTick();
             check(ctx.computeOnClient(mc -> EditController.enabled()), "edit mode should be on");
             input.lookAt(0, 10);
             ctx.waitTicks(2);
             ctx.takeScreenshot("01_edit_mode_hud");
-            input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+            input.pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
             ctx.waitForScreen(TextEditorScreen.class);
             input.typeChars("Hello");
-            input.pressKey(GLFW.GLFW_KEY_ENTER);
+            input.pressKey(InputConstants.KEY_RETURN);
             input.typeChars("QuickWriter 你好");
             ctx.waitTicks(2);
             ctx.takeScreenshot("02_editor_live_preview");
             ctx.clickScreenButton("screen.quickwriter.done");
             ctx.waitForScreen(null);
-            sp.getConnection().waitForServerboundPackets();
+            syncToServer(ctx, sp);
             ctx.waitTicks(5);
 
             List<Display.TextDisplay> texts = texts(server);
@@ -72,16 +73,16 @@ public class QuickWriterClientTest implements FabricClientGameTest {
             input.lookAt(0, 10);
             ctx.waitTicks(2);
             check(ctx.computeOnClient(mc -> EditController.hover() != null), "text should be hovered");
-            input.holdMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+            input.holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
             ctx.waitTicks(2);
             for (int i = 1; i <= 8; i++) {
                 input.lookAt(i * 1.5f, 10 - i * 0.5f);
                 ctx.waitTick();
             }
             ctx.takeScreenshot("04_dragging");
-            input.releaseMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+            input.releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
             ctx.waitTicks(3);
-            sp.getConnection().waitForServerboundPackets();
+            syncToServer(ctx, sp);
             ctx.waitTicks(3);
             Vec3 after = texts(server).getFirst().position();
             check(Math.abs(after.z - before.z) < 1e-6, "drag left the face plane: " + before + " -> " + after);
@@ -93,12 +94,12 @@ public class QuickWriterClientTest implements FabricClientGameTest {
             ctx.waitTicks(5);
             input.lookAt(new BlockPos(x, y + 2, z + 5));
             ctx.waitTicks(2);
-            input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+            input.pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
             ctx.waitForScreen(TextEditorScreen.class);
             input.typeChars("TOP");
             ctx.clickScreenButton("screen.quickwriter.done");
             ctx.waitForScreen(null);
-            sp.getConnection().waitForServerboundPackets();
+            syncToServer(ctx, sp);
             ctx.waitTicks(5);
             Display.TextDisplay top = byText(server, "TOP");
             check(Math.abs(top.getXRot() + 90) < 0.01, "top face pitch " + top.getXRot());
@@ -113,7 +114,7 @@ public class QuickWriterClientTest implements FabricClientGameTest {
             ctx.waitTicks(5);
             input.lookAt(new BlockPos(x - 5, y + 3, z + 4));
             ctx.waitTicks(2);
-            input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+            input.pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
             ctx.waitForScreen(TextEditorScreen.class);
             input.typeChars("CEILING");
             ctx.clickScreenButton("screen.quickwriter.done");
@@ -123,22 +124,22 @@ public class QuickWriterClientTest implements FabricClientGameTest {
             ctx.waitTicks(5);
             input.lookAt(90, 0);
             ctx.waitTicks(2);
-            input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+            input.pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
             ctx.waitForScreen(TextEditorScreen.class);
             input.typeChars("EAST");
             ctx.clickScreenButton("screen.quickwriter.done");
             ctx.waitForScreen(null);
-            sp.getConnection().waitForServerboundPackets();
+            syncToServer(ctx, sp);
             ctx.waitTicks(5);
             check(Math.abs(byText(server, "CEILING").getXRot() - 90) < 0.01, "ceiling pitch");
             check(Math.abs(byText(server, "EAST").getYRot() + 90) < 0.01, "east yaw " + byText(server, "EAST").getYRot());
             ctx.takeScreenshot("05_east_face");
 
             // --- 5. edit the east text: change colour via swatch, toggle bold ------------------------------------
-            input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+            input.pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
             ctx.waitForScreen(TextEditorScreen.class);
             ctx.runOnClient(mc -> {
-                var screen = (TextEditorScreen) mc.gui.screen();
+                var screen = (TextEditorScreen) ClientCompat.screen(mc);
                 for (var child : screen.children()) {
                     if (child instanceof net.minecraft.client.gui.components.EditBox box && box.getValue().startsWith("#") && box.getValue().length() == 7) {
                         box.setValue("#FF5555");
@@ -147,17 +148,17 @@ public class QuickWriterClientTest implements FabricClientGameTest {
             });
             ctx.clickScreenButton("screen.quickwriter.done");
             ctx.waitForScreen(null);
-            sp.getConnection().waitForServerboundPackets();
+            syncToServer(ctx, sp);
             ctx.waitTicks(5);
             int color = byText(server, "EAST").getText().getStyle().getColor().getValue();
             check(color == 0xFF5555, "colour after edit: " + Integer.toHexString(color));
 
             // --- 6. cancelling an edit reverts the live preview ---------------------------------------------------
-            input.pressMouse(GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+            input.pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
             ctx.waitForScreen(TextEditorScreen.class);
             input.typeChars("XYZ");
             ctx.waitTicks(2);
-            input.pressKey(GLFW.GLFW_KEY_ESCAPE);
+            input.pressKey(InputConstants.KEY_ESCAPE);
             ctx.waitForScreen(null);
             String clientText = ctx.computeOnClient(mc -> {
                 for (Entity e : mc.level.entitiesForRendering())
@@ -182,16 +183,33 @@ public class QuickWriterClientTest implements FabricClientGameTest {
             ctx.waitTicks(5);
             input.lookAt(90, 0);
             ctx.waitTicks(2);
-            input.pressKey(GLFW.GLFW_KEY_BACKSPACE);
-            sp.getConnection().waitForServerboundPackets();
+            input.pressKey(InputConstants.KEY_BACKSPACE);
+            syncToServer(ctx, sp);
             ctx.waitTicks(5);
             check(texts(server).stream().noneMatch(t -> t.getText().getString().equals("EAST")), "EAST was not deleted");
             check(texts(server).size() == 3, "expected 3 texts left, got " + texts(server).size());
 
-            input.pressKey(GLFW.GLFW_KEY_G);
+            input.pressKey(InputConstants.KEY_G);
             ctx.waitTick();
             check(!ctx.computeOnClient(mc -> EditController.enabled()), "edit mode should be off");
         }
+    }
+
+    /** Waits until packets the client sent have been handled by the integrated server. */
+    private static void syncToServer(ClientGameTestContext ctx, TestSingleplayerContext sp) {
+        //? if >=26.2 {
+        sp.getConnection().waitForServerboundPackets();
+        //?} else {
+        /*ctx.waitTicks(3);
+        *///?}
+    }
+
+    private static void waitForChunks(TestSingleplayerContext sp) {
+        //? if >=26.2 {
+        sp.getConnection().waitForChunksRender();
+        //?} else {
+        /*sp.getClientLevel().waitForChunksRender();
+        *///?}
     }
 
     private static List<Display.TextDisplay> texts(TestServerContext server) {

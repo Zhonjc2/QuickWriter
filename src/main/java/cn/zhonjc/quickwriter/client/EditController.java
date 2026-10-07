@@ -65,7 +65,7 @@ public final class EditController {
 
         if (drag != null) {
             if (drag.entity.isRemoved()) drag = null;
-            else if (mc.gui.screen() != null) cancelDrag();
+            else if (ClientCompat.screen(mc) != null) cancelDrag();
             else if (!mc.options.keyAttack.isDown()) finishDrag();
             else updateDrag(mc);
         }
@@ -113,7 +113,7 @@ public final class EditController {
         }
         TextGeometry.Hit hit = pickText(mc);
         if (hit != null) {
-            mc.gui.setScreen(TextEditorScreen.edit(hit.entity()));
+            ClientCompat.setScreen(mc, TextEditorScreen.edit(hit.entity()));
             return true;
         }
         BlockHitResult block = pickBlock(mc);
@@ -129,7 +129,7 @@ public final class EditController {
                 case Y -> new Vec3(c.x, click.y, c.z);
                 case Z -> new Vec3(c.x, c.y, click.z);
             };
-            mc.gui.setScreen(TextEditorScreen.create(click, faceCenter, rot[0], rot[1]));
+            ClientCompat.setScreen(mc, TextEditorScreen.create(click, faceCenter, rot[0], rot[1]));
         }
         return true;
     }

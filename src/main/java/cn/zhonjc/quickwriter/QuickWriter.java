@@ -12,7 +12,6 @@ import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
@@ -68,7 +67,7 @@ public class QuickWriter implements ModInitializer {
         float yaw = Float.isFinite(p.yaw()) ? p.yaw() : 0, pitch = Float.isFinite(p.pitch()) ? Math.clamp(p.pitch(), -90, 90) : 0;
         if (p.entityId() < 0) {
             if (style.text().isBlank()) return;
-            Display.TextDisplay e = EntityTypes.TEXT_DISPLAY.create(level, EntitySpawnReason.COMMAND);
+            Display.TextDisplay e = Compat.textDisplayType().create(level, EntitySpawnReason.COMMAND);
             if (e == null) return;
             e.snapTo(p.pos().x, p.pos().y, p.pos().z, yaw, pitch);
             e.addTag(TextDisplays.TAG);

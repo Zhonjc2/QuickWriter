@@ -1,5 +1,6 @@
 package cn.zhonjc.quickwriter.client;
 
+import cn.zhonjc.quickwriter.Compat;
 import cn.zhonjc.quickwriter.TextDisplays;
 import cn.zhonjc.quickwriter.TextStyle;
 import cn.zhonjc.quickwriter.network.Payloads;
@@ -17,7 +18,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Brightness;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
@@ -129,7 +129,7 @@ public class TextEditorScreen extends Screen {
     @Override
     protected void init() {
         if (existing == null && preview == null && minecraft.level != null) {
-            preview = new Display.TextDisplay(EntityTypes.TEXT_DISPLAY, minecraft.level);
+            preview = new Display.TextDisplay(Compat.textDisplayType(), minecraft.level);
             preview.setId(nextPreviewId--);
             minecraft.level.addEntity(preview);
         }

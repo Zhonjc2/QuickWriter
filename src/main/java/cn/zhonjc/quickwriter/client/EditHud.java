@@ -17,7 +17,7 @@ final class EditHud {
 
     static void extract(GuiGraphicsExtractor g, DeltaTracker delta) {
         Minecraft mc = Minecraft.getInstance();
-        if (!EditController.enabled() || mc.gui.screen() != null) return;
+        if (!EditController.enabled() || ClientCompat.screen(mc) != null) return;
 
         List<Component> lines = new ArrayList<>();
         lines.add(Component.translatable("hud.quickwriter.title").withStyle(ChatFormatting.GOLD));

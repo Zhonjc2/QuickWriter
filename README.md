@@ -1,4 +1,4 @@
-# QuickWriter（Minecraft 26.2 · Fabric）
+# QuickWriter（Minecraft 26.1 / 26.2 / 26.3 · Fabric）
 
 在游戏里直接点击方块表面写字。模组会生成原版的 `minecraft:text_display` 实体，并让它紧贴方块表面，
 朝向、偏移和旋转都自动算好，不需要再手动拼 `/summon` 命令或选择玩家朝向。
@@ -40,8 +40,14 @@
 
 ## 安装
 
-1. 安装 Fabric Loader（≥ 0.19.3）和对应 26.2 的 Fabric API。
-2. 把 `build/libs/quickwriter-1.0.0+26.2.jar` 放进 `mods` 文件夹。
+1. 安装 Fabric Loader（≥ 0.19.3）和与游戏版本对应的 Fabric API。
+2. 从 [Releases](https://github.com/Zhonjc2/QuickWriter/releases) 下载与游戏版本对应的 jar，放进 `mods` 文件夹：
+
+| 游戏版本 | 文件 |
+| --- | --- |
+| 26.1 / 26.1.1 / 26.1.2 | `quickwriter-<版本>+26.1.2.jar` |
+| 26.2 | `quickwriter-<版本>+26.2.jar` |
+| 26.3 | `quickwriter-<版本>+26.3.jar` |
 
 实体由服务端创建，所以**多人服务器也必须安装本模组**。单人游戏不需要额外设置。
 服务端会检查权限：创造模式、管理员或单人世界的房主才能编辑。
@@ -52,25 +58,42 @@
 
 ## 开发
 
-需要 JDK 25（`gradle.properties` 里的 `org.gradle.java.home` 指向 Homebrew 的 openjdk@25，换机器时请修改）。
+项目使用 [Stonecutter](https://stonecutter.kikugie.dev/) 做多版本构建：同一份 `src/` 按版本分别编译，每个版本输出一个 jar。
+构建需要 JDK 25。Gradle toolchain 会自动找到本机的 JDK 25；如果没装，会自动下载。
 
 ```bash
-./gradlew build                # 输出 build/libs/quickwriter-*.jar
-./gradlew runClient            # 启动开发客户端
-./gradlew runClientGameTest    # 端到端自动测试（会打开游戏窗口）
+./gradlew buildAndCollect                # 构建所有版本，输出到 build/libs/<模组版本>/
+./gradlew :26.3:build                    # 只构建某个版本
+./gradlew :26.2:runClient                # 用某个版本启动开发客户端
+./gradlew :26.1.2:runClientGameTest      # 在某个版本上跑端到端自动测试
 ```
+
+### 版本差异怎么写
+
+- **改依赖版本、增加新版本**：`settings.gradle.kts` 里的 `versions(...)` 决定构建哪些版本。每个版本的 Fabric API 版本和 `fabric.mod.json` 里的兼容范围写在 `stonecutter.properties.toml`。
+- **写版本相关的代码**：用 Stonecutter 的条件注释，非当前版本的分支保持注释状态：
+  ```java
+  //? if >=26.2 {
+  return mc.gui.screen();
+  //?} else {
+  /*return mc.screen;
+  *///?}
+  ```
+  版本差异尽量集中在 `Compat` 和 `client/ClientCompat` 两个类里。
+- **当前版本**：`src/` 里没被注释的代码对应 `stonecutter.gradle.kts` 里的 `active` 版本（目前是 26.2）。在 IDE 里想直接看另一个版本的代码，运行 Gradle 任务 `"Set active project to ..."` 切换；提交前切回 26.2。
 
 `runClientGameTest` 会真的启动客户端、创建世界，然后用模拟的键盘和鼠标测试这些流程：
 - 写字和拖动
 - 在地面、天花板、侧面写字
 - 修改颜色、取消编辑、删除
 
-测试截图保存在 `build/run/clientGameTest/screenshots/`。
+测试截图保存在 `versions/<版本>/build/run/clientGameTest/screenshots/`。
 
 ### 代码结构
 
 - `TextDisplays`：读写实体样式，并提供和原版渲染器一致的几何计算（方块面对应的朝向、局部坐标到世界坐标的矩阵）
 - `QuickWriter` + `network/Payloads`：服务端接收新建/修改、移动、删除三种数据包，并做权限和距离校验
+- `Compat` / `client/ClientCompat`：不同 Minecraft 版本之间的 API 差异
 - `client/EditController`：编辑模式状态机，负责点击、拖动、吸取样式
 - `client/TextGeometry`：文字尺寸计算，以及视线和文字矩形的拾取
 - `client/TextEditorScreen`：编辑面板，负责实时预览和取消时恢复
