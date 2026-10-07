@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "quickwriter",
+  "version": "${version}",
+  "name": "QuickWriter",
+  "description": "Click a block face to write text on it with text_display entities; drag to slide text along the surface.",
+  "authors": ["zhonjc"],
+  "contact": { "homepage": "https://mctd.zhonjc.cn" },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["cn.zhonjc.quickwriter.QuickWriter"],
+    "client": ["cn.zhonjc.quickwriter.client.QuickWriterClient"]
+  },
+  "mixins": ["quickwriter.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

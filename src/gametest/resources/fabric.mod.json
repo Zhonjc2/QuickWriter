@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "quickwriter-gametest",
+  "version": "1.0.0",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-client-gametest": ["cn.zhonjc.quickwriter.test.QuickWriterClientTest"]
+  },
+  "depends": { "quickwriter": "*" }
+}
